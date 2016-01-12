@@ -5,7 +5,13 @@
 
 typedef struct
 {
-    uint8_t **dict;
+    uint16_t size;
+    uint8_t *data;
+} lzw_dict_entry_t;
+
+typedef struct
+{
+    lzw_dict_entry_t *dict;
     size_t dict_size;
     int dict_i;
     uint8_t code_len;
