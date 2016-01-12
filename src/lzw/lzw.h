@@ -1,6 +1,7 @@
 #pragma once
 #include "config.h"
 #include "common.h"
+#include "io_func.h"
 
 typedef struct
 {
@@ -9,9 +10,6 @@ typedef struct
     int dict_i;
     uint8_t code_len;
 } lzw_t;
-
-typedef size_t(*read_func_t)(void *ctx, uint8_t *dst, size_t count);
-typedef size_t(*write_func_t)(void *ctx, uint8_t *src, size_t count);
 
 void lzw_init(lzw_t *lzw);
 void lzw_reset(lzw_t *lzw);

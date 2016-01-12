@@ -3,10 +3,13 @@
   <ItemGroup>
     <ClCompile Include="main.c" />
     <ClCompile Include="lzw.c" />
+    <ClCompile Include="bitstream.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="config.h" />
     <ClInclude Include="common.h" />
     <ClInclude Include="lzw.h" />
+    <ClInclude Include="bitstream.h" />
+    <ClInclude Include="io_func.h" />
   </ItemGroup>
 </Project>
