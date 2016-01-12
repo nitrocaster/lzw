@@ -41,17 +41,30 @@ void lzw_reset(lzw_t *lzw)
     lzw->code_len = LZW_INIT_CODE_LEN;
 }
 
+static void lzw_resize_dict(lzw_t *lzw)
+{
+    size_t old_size = lzw->dict_size;
+    size_t new_size = 1 << lzw->code_len;
+    if (new_size>=old_size)
+    {
+        lzw->dict_size = new_size;
+        lzw->dict = realloc(lzw->dict,
+            lzw->dict_size*sizeof(lzw_dict_entry_t));
+        memset(lzw->dict+old_size, 0,
+            (new_size-old_size)*sizeof(lzw_dict_entry_t));
+    }
+    else
+    {
+        memset(lzw->dict+new_size, 0,
+            (old_size-new_size)*sizeof(lzw_dict_entry_t));
+    }
+}
+
 int lzw_compress(lzw_t *lzw, read_func_t src_r, write_func_t dst_w, void *ctx)
 {
     bitstream_t bs_w;
     bitstream_init_w(&bs_w, dst_w, ctx);
     dst_w(ctx, &lzw->code_len, 1);
-    size_t req_size = 1 << lzw->code_len;
-    if (req_size > lzw->dict_size)
-    {
-        lzw->dict_size = req_size;
-        lzw->dict = realloc(lzw->dict, lzw->dict_size);
-    }
     uint8_t buf[LZW_BUFFER_SIZE*2];
     uint8_t *inp = buf;
     size_t r_bytes = src_r(ctx, buf, LZW_BUFFER_SIZE*2);
@@ -84,9 +97,7 @@ int lzw_compress(lzw_t *lzw, read_func_t src_r, write_func_t dst_w, void *ctx)
         if (lzw->dict_i==(1 << lzw->code_len))
         {
             lzw->code_len++;
-            lzw->dict_size = 1 << lzw->code_len;
-            lzw->dict = realloc(lzw->dict,
-                lzw->dict_size*sizeof(lzw_dict_entry_t));
+            lzw_resize_dict(lzw);
         }
         // add this match, along with the next character, to the dictionary
         lzw_dict_entry_t *di = &lzw->dict[lzw->dict_i];
@@ -109,13 +120,7 @@ int lzw_decompress(lzw_t *lzw, read_func_t src_r,
     if (init_code_len>=32)
         return 1;
     lzw->code_len = init_code_len;
-    size_t req_size = 1 << lzw->code_len;
-    if (req_size > lzw->dict_size)
-    {
-        lzw->dict_size = req_size;
-        lzw->dict = realloc(lzw->dict,
-            lzw->dict_size*sizeof(lzw_dict_entry_t));
-    }
+    lzw_resize_dict(lzw);
     int prev = -1;
     int done = 0;
     while (1)
@@ -136,9 +141,7 @@ int lzw_decompress(lzw_t *lzw, read_func_t src_r,
         if (code==256)
         {
             lzw->code_len = init_code_len;
-            lzw->dict_size = 1 << lzw->code_len;
-            lzw->dict = realloc(lzw->dict,
-                lzw->dict_size*sizeof(lzw_dict_entry_t));
+            lzw_resize_dict(lzw);
         }
         // put 'prev'+'c' into the dictionary
         if (prev>=0)
@@ -153,12 +156,9 @@ int lzw_decompress(lzw_t *lzw, read_func_t src_r,
             if (lzw->dict_i==(1 << lzw->code_len))
             {
                 lzw->code_len++;
-                lzw->dict_size = 1 << lzw->code_len;
-                lzw->dict = realloc(lzw->dict,
-                    lzw->dict_size*sizeof(lzw_dict_entry_t));
+                lzw_resize_dict(lzw);
             }
         }
-        // XXX: zeroize dictionary to make this work
         if (!lzw->dict[code].size)
             return 1; // no entry for this code
         dst_w(ctx, lzw->dict[code].data, lzw->dict[code].size);
