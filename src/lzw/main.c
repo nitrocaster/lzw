@@ -84,5 +84,7 @@ int main(int argc, char *argv[])
     lzw_deinit(&lzw);
     fclose(ctx.src);
     fclose(ctx.dst);
-    return ret;    
+    if (ret)
+        puts("internal error");
+    return ret;
 }
