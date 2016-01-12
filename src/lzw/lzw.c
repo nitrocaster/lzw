@@ -10,11 +10,27 @@
 #define LZW_BUFFER_SIZE 256
 #define LZW_INIT_CODE_LEN 9
 
+static void lzw_resize_dict(lzw_t *lzw)
+{
+    size_t old_cap = lzw->dict_capacity;
+    size_t new_size = 1 << lzw->code_len;
+    if (new_size>=old_cap)
+    {
+        lzw->dict_capacity = new_size;
+        lzw->dict = realloc(lzw->dict, new_size*sizeof(lzw_dict_entry_t));
+        memset(lzw->dict+old_cap, 0,
+            (new_size-old_cap)*sizeof(lzw_dict_entry_t));
+    }
+    lzw->dict_size = new_size;
+}
+
 void lzw_init(lzw_t *lzw)
 {
-    uint8_t code_len = LZW_INIT_CODE_LEN;
-    lzw->dict_size = (1 << code_len)*sizeof(uint8_t *);
-    lzw->dict = malloc(lzw->dict_size*sizeof(lzw_dict_entry_t));
+    lzw->code_len = LZW_INIT_CODE_LEN;
+    lzw->dict = NULL;
+    lzw->dict_size = 0;
+    lzw->dict_capacity = 0;
+    lzw_resize_dict(lzw);
     static uint8_t dict_def_data[257];
     static int dict_def_data_init = 0;
     if (!dict_def_data_init)
@@ -39,25 +55,6 @@ void lzw_reset(lzw_t *lzw)
 {
     lzw->dict_i = 257;
     lzw->code_len = LZW_INIT_CODE_LEN;
-}
-
-static void lzw_resize_dict(lzw_t *lzw)
-{
-    size_t old_size = lzw->dict_size;
-    size_t new_size = 1 << lzw->code_len;
-    if (new_size>=old_size)
-    {
-        lzw->dict_size = new_size;
-        lzw->dict = realloc(lzw->dict,
-            lzw->dict_size*sizeof(lzw_dict_entry_t));
-        memset(lzw->dict+old_size, 0,
-            (new_size-old_size)*sizeof(lzw_dict_entry_t));
-    }
-    else
-    {
-        memset(lzw->dict+new_size, 0,
-            (old_size-new_size)*sizeof(lzw_dict_entry_t));
-    }
 }
 
 int lzw_compress(lzw_t *lzw, read_func_t src_r, write_func_t dst_w, void *ctx)
@@ -159,7 +156,7 @@ int lzw_decompress(lzw_t *lzw, read_func_t src_r,
                 lzw_resize_dict(lzw);
             }
         }
-        if (!lzw->dict[code].size)
+        if (code >= lzw->dict_size)
             return 1; // no entry for this code
         dst_w(ctx, lzw->dict[code].data, lzw->dict[code].size);
         prev = code;
@@ -169,7 +166,12 @@ int lzw_decompress(lzw_t *lzw, read_func_t src_r,
 
 void lzw_deinit(lzw_t *lzw)
 {
+    // first 257 entries are statically allocated
+    for (int i = 257; i < lzw->dict_capacity; i++)
+    {
+        if (lzw->dict[i].data)
+            free(lzw->dict[i].data);
+    }
     free(lzw->dict);
-    // XXX: free dict entry data
     memset(lzw, 0, sizeof(lzw_t));
 }

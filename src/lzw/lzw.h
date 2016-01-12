@@ -13,6 +13,7 @@ typedef struct
 {
     lzw_dict_entry_t *dict;
     size_t dict_size;
+    size_t dict_capacity;
     int dict_i;
     uint8_t code_len;
 } lzw_t;
