@@ -1,13 +1,10 @@
 #include "config.h"
 #include "common.h"
 #include "lzw.h"
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <limits.h>
 #include <assert.h>
-#include <errno.h>
 
 #define LZW_BUFFER_SIZE 256
 #define LZW_INIT_CODE_LEN 9
