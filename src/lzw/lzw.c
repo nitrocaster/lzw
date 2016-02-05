@@ -140,7 +140,7 @@ int lzw_decompress(lzw_t *lzw, read_func_t src_r,
             lzw->code_len = init_code_len;
             lzw_resize_dict(lzw);
         }
-        // put 'prev'+'c' into the dictionary
+        // put dict[prev]+'c' into the dictionary
         if (prev>=0)
         {
             lzw_dict_entry_t *di = &lzw->dict[lzw->dict_i];
